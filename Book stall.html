@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Book Stall App</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 400px;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="app">
+        <h2>Book Stall - Purchase Form</h2>
+        <form @submit.prevent="saveData">
+            <input v-model="customerName" placeholder="Customer Name" />
+            <input v-model="bookName" placeholder="Book Name" />
+            <input v-model="authorName" placeholder="Author Name" />
+            <input type="date" v-model="purchaseDate" />
+            <button type="submit">Submit</button>
+        </form>
+        <div class="success" v-if="successMsg">{{ successMsg }}</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+        import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVlI8X3IkWexB1aZHTIwOa7BCBWrCClMk",
+            authDomain: "books-84719.firebaseapp.com",
+            databaseURL: "https://books-84719-default-rtdb.firebaseio.com",
+            projectId: "books-84719",
+            storageBucket: "books-84719.firebasestorage.app",
+            messagingSenderId: "912740440777",
+            appId: "1:912740440777:web:220df4847febb78e7a8b18",
+            measurementId: "G-WLETSD0DV0"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    customerName: '',
+                    bookName: '',
+                    authorName: '',
+                    purchaseDate: '',
+                    successMsg: ''
+                };
+            },
+            methods: {
+                async saveData() {
+                    if (!this.customerName || !this.bookName || !this.authorName || !this.purchaseDate) {
+                        alert("Please fill in all fields.");
+                        return;
+                    }
+
+                    const newEntry = {
+                        customerName: this.customerName,
+                        bookName: this.bookName,
+                        authorName: this.authorName,
+                        purchaseDate: this.purchaseDate
+                    };
+
+                    try {
+                        await push(ref(db, 'bookPurchases'), newEntry);
+                        this.successMsg = "Data saved successfully!";
+                        this.customerName = this.bookName = this.authorName = this.purchaseDate = '';
+                    } catch (error) {
+                        alert("Error saving data: " + error.message);
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
