@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Software Job Application</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef3f7;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .form-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="form-box">
+        <h2>Software Job Application</h2>
+        <input v-model="form.name" placeholder="Full Name" />
+        <input v-model="form.email" placeholder="Email" type="email" />
+        <input v-model="form.phone" placeholder="Phone Number" type="tel" />
+        <select v-model="form.position">
+            <option disabled value="">Select Position</option>
+            <option>Frontend Developer</option>
+            <option>Backend Developer</option>
+            <option>Full Stack Developer</option>
+            <option>UI/UX Designer</option>
+        </select>
+        <input v-model="form.experience" placeholder="Years of Experience" type="number" />
+        <input v-model="form.resume" placeholder="Resume Link (Google Drive, etc.)" type="url" />
+        <button @click="submitForm">Submit Application</button>
+    </div>
+
+    <script>
+        // ✅ Updated Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSkysofWYBVXZe_zoZWlbuvN7NR7fTxmY",
+            authDomain: "web-app-dff58.firebaseapp.com",
+            databaseURL: "https://web-app-dff58-default-rtdb.firebaseio.com", // ✅ required!
+            projectId: "web-app-dff58",
+            storageBucket: "web-app-dff58.appspot.com", // ✅ corrected
+            messagingSenderId: "171389602846",
+            appId: "1:171389602846:web:c96a478b93fc80e1b7720f",
+            measurementId: "G-GRQWN06M2D"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    form: {
+                        name: '',
+                        email: '',
+                        phone: '',
+                        position: '',
+                        experience: '',
+                        resume: ''
+                    }
+                };
+            },
+            methods: {
+                submitForm() {
+                    const f = this.form;
+                    if (f.name && f.email && f.phone && f.position && f.experience && f.resume) {
+                        db.ref('job_applications').push(f)
+                            .then(() => {
+                                alert("Application submitted successfully!");
+                                this.form = {
+                                    name: '',
+                                    email: '',
+                                    phone: '',
+                                    position: '',
+                                    experience: '',
+                                    resume: ''
+                                };
+                            })
+                            .catch(error => {
+                                console.error("Error:", error);
+                                alert("Submission failed. Check the console.");
+                            });
+                    } else {
+                        alert("Please fill in all fields.");
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
