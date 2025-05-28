@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Grocery App with Firebase</title>
+    <style>
+        /* Basic styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
+            overflow-x: hidden;
+            color: #333;
+            position: relative;
+        }
+
+        /* 3D floating vegetables effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            background-image: url('download.jpg'), url('veg2.jpg'), url('veg3.jpg');
+            background-repeat: no-repeat, no-repeat, no-repeat;
+            background-position: 10% 20%, 50% 50%, 80% 30%;
+            background-size: 150px 150px, 200px 200px, 120px 120px;
+            animation: float1 6s ease-in-out infinite alternate, float2 8s ease-in-out infinite alternate, float3 5s ease-in-out infinite alternate;
+            z-index: -1;
+        }
+
+        @keyframes float1 {
+            0% {
+                transform: translateY(0) translateX(0) rotate(40deg) scale(1);
+            }
+
+            100% {
+                transform: translateY(-20px) translateX(10px) rotate(10deg) scale(1.1);
+            }
+        }
+
+        @keyframes float2 {
+            0% {
+                transform: translateY(0) translateX(0) rotate(40deg) scale(1);
+            }
+
+            100% {
+                transform: translateY(-30px) translateX(-15px) rotate(-10deg) scale(1.05);
+            }
+        }
+
+        @keyframes float3 {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+            }
+
+            100% {
+                transform: translateY(-25px) translateX(15px) rotate(15deg) scale(1.1);
+            }
+        }
+
+        section {
+            display: none;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        input {
+            display: block;
+            margin: 8px 0;
+            padding: 8px;
+            width: 250px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-top: 8px;
+        }
+
+        nav button {
+            margin-right: 10px;
+        }
+
+        #groceryList div {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Raitu Bazar</h1>
+
+    <nav>
+        <button id="showAdminLogin">Admin Login</button>
+        <button id="showAdminSignup">Admin Signup</button>
+        <button id="showAdminDashboard">Admin Dashboard</button>
+        <button id="showUserLogin">User Login</button>
+        <button id="showUserSignup">User Signup</button>
+        <button id="showUserHome">User Home</button>
+        <button id="logoutBtn" style="display:none;">Logout</button>
+    </nav>
+
+    <!-- Admin Login -->
+    <section id="adminLoginSection">
+        <h2>Admin Login</h2>
+        <form id="adminLoginForm">
+            <input type="email" id="adminEmail" placeholder="Email" required>
+            <input type="password" id="adminPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <!-- Admin Signup -->
+    <section id="adminSignupSection">
+        <h2>Admin Signup</h2>
+        <form id="adminSignupForm">
+            <input type="text" id="adminSignupUsername" placeholder="Username" required>
+            <input type="email" id="adminSignupEmail" placeholder="Email" required>
+            <input type="password" id="adminSignupPassword" placeholder="Password" required>
+            <button type="submit">Signup</button>
+        </form>
+    </section>
+
+    <!-- Admin Dashboard -->
+    <section id="adminDashboardSection">
+        <h2>Add Grocery</h2>
+        <div id="adminWelcome"></div>
+        <form id="addGroceryForm">
+            <input type="text" id="groceryName" placeholder="Grocery Name" required>
+            <button type="submit">Add Grocery</button>
+        </form>
+    </section>
+
+    <!-- User Login -->
+    <section id="userLoginSection">
+        <h2>User Login</h2>
+        <form id="userLoginForm">
+            <input type="email" id="userEmail" placeholder="Email" required>
+            <input type="password" id="userPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <!-- User Signup -->
+    <section id="userSignupSection">
+        <h2>User Signup</h2>
+        <form id="userSignupForm">
+            <input type="text" id="userSignupUsername" placeholder="Username" required>
+            <input type="email" id="userSignupEmail" placeholder="Email" required>
+            <input type="password" id="userSignupPassword" placeholder="Password" required>
+            <button type="submit">Signup</button>
+        </form>
+    </section>
+
+    <!-- User Home -->
+    <section id="userHomeSection">
+        <h2>Available Groceries</h2>
+        <div id="userWelcome"></div>
+        <div id="groceryList"></div>
+    </section>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // Firebase config - IMPORTANT: Replace the following with your Firebase project configuration
+        // You can find this in your Firebase console project settings
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQTHoKOQ2a4kIY4r-tjt1t4TRrFlJwRQ4",
+            authDomain: "website-16b02.firebaseapp.com",
+            databaseURL: "https://website-16b02-default-rtdb.firebaseio.com",
+            projectId: "website-16b02",
+            storageBucket: "website-16b02.appspot.com",
+            messagingSenderId: "67452117174",
+            appId: "1:67452117174:web:d6625c9110f983e54a0617",
+            measurementId: "G-7E5054G6SS"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Sections
+        const sections = {
+            adminLogin: document.getElementById('adminLoginSection'),
+            adminSignup: document.getElementById('adminSignupSection'),
+            adminDashboard: document.getElementById('adminDashboardSection'),
+            userLogin: document.getElementById('userLoginSection'),
+            userSignup: document.getElementById('userSignupSection'),
+            userHome: document.getElementById('userHomeSection')
+        };
+
+        // Navigation buttons
+        const navButtons = {
+            showAdminLogin: document.getElementById('showAdminLogin'),
+            showAdminSignup: document.getElementById('showAdminSignup'),
+            showAdminDashboard: document.getElementById('showAdminDashboard'),
+            showUserLogin: document.getElementById('showUserLogin'),
+            showUserSignup: document.getElementById('showUserSignup'),
+            showUserHome: document.getElementById('showUserHome'),
+            logoutBtn: document.getElementById('logoutBtn')
+        };
+
+        // Show section helper
+        function showSection(sectionKey) {
+            for (const key in sections) {
+                sections[key].classList.remove('active');
+            }
+            sections[sectionKey].classList.add('active');
+            // Show logout button only on dashboard and user home
+            if (sectionKey === 'adminDashboard' || sectionKey === 'userHome') {
+                navButtons.logoutBtn.style.display = 'inline-block';
+            } else {
+                navButtons.logoutBtn.style.display = 'none';
+            }
+        }
+
+        // Initial view
+        showSection('adminLogin');
+
+        // Navigation button event listeners
+        navButtons.showAdminLogin.addEventListener('click', () => showSection('adminLogin'));
+        navButtons.showAdminSignup.addEventListener('click', () => showSection('adminSignup'));
+        navButtons.showAdminDashboard.addEventListener('click', () => showSection('adminDashboard'));
+        navButtons.showUserLogin.addEventListener('click', () => showSection('userLogin'));
+        navButtons.showUserSignup.addEventListener('click', () => showSection('userSignup'));
+        navButtons.showUserHome.addEventListener('click', () => showSection('userHome'));
+
+        // Logout
+        navButtons.logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            alert('Logged out');
+            showSection('adminLogin');
+        });
+
+        // Admin Signup
+        const adminSignupForm = document.getElementById('adminSignupForm');
+        adminSignupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('adminSignupUsername').value;
+            const email = document.getElementById('adminSignupEmail').value;
+            const password = document.getElementById('adminSignupPassword').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                // Update user profile with displayName
+                await updateProfile(userCredential.user, { displayName: username });
+                alert('Admin signup successful. Please login.');
+                showSection('adminLogin');
+                adminSignupForm.reset();
+            } catch (error) {
+                let message = 'Error during signup: ';
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        message += 'This email is already in use.';
+                        break;
+                    case 'auth/invalid-email':
+                        message += 'Invalid email address.';
+                        break;
+                    case 'auth/weak-password':
+                        message += 'Password is too weak.';
+                        break;
+                    default:
+                        message += error.message;
+                }
+                alert(message);
+            }
+        });
+
+        // Admin Login
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        adminLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showSection('adminDashboard');
+                adminLoginForm.reset();
+            } catch (error) {
+                let message = 'Error during login: ';
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        message += 'No user found with this email.';
+                        break;
+                    case 'auth/wrong-password':
+                        message += 'Incorrect password.';
+                        break;
+                    case 'auth/invalid-email':
+                        message += 'Invalid email address.';
+                        break;
+                    default:
+                        message += error.message;
+                }
+                alert(message);
+            }
+        });
+
+        // Add Grocery
+        const addGroceryForm = document.getElementById('addGroceryForm');
+        addGroceryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const groceryName = document.getElementById('groceryName').value;
+            try {
+                await addDoc(collection(db, "groceries"), {
+                    name: groceryName,
+                    createdAt: Timestamp.fromDate(new Date())
+                });
+                alert('Grocery added successfully');
+                addGroceryForm.reset();
+                // Navigate to user home and refresh grocery list
+                showSection('userHome');
+                loadGroceries();
+            } catch (error) {
+                alert('Error adding grocery: ' + error.message);
+            }
+        });
+
+        // User Signup
+        const userSignupForm = document.getElementById('userSignupForm');
+        userSignupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userSignupUsername').value;
+            const email = document.getElementById('userSignupEmail').value;
+            const password = document.getElementById('userSignupPassword').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                // Update user profile with displayName
+                await updateProfile(userCredential.user, { displayName: username });
+                alert('User signup successful. Please login.');
+                showSection('userLogin');
+                userSignupForm.reset();
+            } catch (error) {
+                alert('Error during signup: ' + error.message);
+            }
+        });
+
+        // User Login
+        const userLoginForm = document.getElementById('userLoginForm');
+        userLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showSection('userHome');
+                userLoginForm.reset();
+                loadGroceries();
+            } catch (error) {
+                alert('Error during login: ' + error.message);
+            }
+        });
+
+        // Load groceries for user home
+        const groceryListDiv = document.getElementById('groceryList');
+        async function loadGroceries() {
+            try {
+                const q = query(collection(db, "groceries"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                groceryListDiv.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const grocery = doc.data();
+                    const div = document.createElement('div');
+                    div.textContent = grocery.name;
+                    groceryListDiv.appendChild(div);
+                });
+            } catch (error) {
+                alert('Error loading groceries: ' + error.message);
+            }
+        }
+
+        // Display welcome username in admin dashboard and user home
+        const adminWelcomeDiv = document.getElementById('adminWelcome');
+        const userWelcomeDiv = document.getElementById('userWelcome');
+        function updateWelcome(user) {
+            const name = user.displayName || user.email;
+            adminWelcomeDiv.textContent = `Welcome, ${name}`;
+            userWelcomeDiv.textContent = `Welcome, ${name}`;
+        }
+
+        // Auth state listener to update UI accordingly
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                updateWelcome(user);
+                // Determine if user is admin or normal user by email or other logic
+                // For simplicity, show admin dashboard if email contains "admin"
+                if (user.email && user.email.includes("admin")) {
+                    showSection('adminDashboard');
+                } else {
+                    showSection('userHome');
+                    loadGroceries();
+                }
+                navButtons.logoutBtn.style.display = 'inline-block';
+
+                // Optionally display username in UI (e.g., welcome message)
+                console.log('Logged in user:', user.displayName || user.email);
+            } else {
+                showSection('adminLogin');
+                navButtons.logoutBtn.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
