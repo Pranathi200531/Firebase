@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>User Portal - Raitu Bazar</title>
+    <style>
+        /* Basic styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
+            overflow-x: hidden;
+            color: #333;
+            position: relative;
+        }
+
+        input {
+            display: block;
+            margin: 8px 0;
+            padding: 8px;
+            width: 250px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-top: 8px;
+        }
+
+        nav button,
+        nav a {
+            margin-right: 10px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 1em;
+        }
+
+        nav button:hover,
+        nav a:hover {
+            background-color: #45a049;
+        }
+
+        section {
+            display: none;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        #userWelcome {
+            margin-bottom: 16px;
+            font-weight: bold;
+        }
+
+        #groceryList div {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>User Portal - Raitu Bazar</h1>
+
+    <nav>
+        <button id="showUserLogin" type="button">Login</button>
+        <button id="showUserSignup" type="button">Signup</button>
+        <button id="showUserHome" type="button" style="display:none;">Home</button>
+        <button id="showAddGrocery" type="button" style="display:none;">Add Grocery</button>
+        <button id="logoutBtn" type="button" style="display:none;">Logout</button>
+        <a href="index.html">Back to Home</a>
+    </nav>
+
+    <!-- User Login -->
+    <section id="userLoginSection" class="active">
+        <h2>User Login</h2>
+        <form id="userLoginForm">
+            <input type="email" id="userEmail" placeholder="Email" required>
+            <input type="password" id="userPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <!-- User Signup -->
+    <section id="userSignupSection">
+        <h2>User Signup</h2>
+        <form id="userSignupForm">
+            <input type="text" id="userSignupUsername" placeholder="Username" required>
+            <input type="email" id="userSignupEmail" placeholder="Email" required>
+            <input type="password" id="userSignupPassword" placeholder="Password" required>
+            <button type="submit">Signup</button>
+        </form>
+    </section>
+
+    <!-- User Home -->
+    <section id="userHomeSection">
+        <h2>Available Groceries</h2>
+        <div id="userWelcome"></div>
+        <div id="groceryList"></div>
+    </section>
+
+    <!-- Add Grocery -->
+    <!-- Removed from user page as per user request -->
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, orderBy, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQTHoKOQ2a4kIY4r-tjt1t4TRrFlJwRQ4",
+            authDomain: "website-16b02.firebaseapp.com",
+            databaseURL: "https://website-16b02-default-rtdb.firebaseio.com",
+            projectId: "website-16b02",
+            storageBucket: "website-16b02.appspot.com",
+            messagingSenderId: "67452117174",
+            appId: "1:67452117174:web:d6625c9110f983e54a0617",
+            measurementId: "G-7E5054G6SS"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Sections
+        const sections = {
+            userLogin: document.getElementById('userLoginSection'),
+            userSignup: document.getElementById('userSignupSection'),
+            userHome: document.getElementById('userHomeSection'),
+            addGrocery: document.getElementById('addGrocerySection')
+        };
+
+        // Navigation buttons
+        const navButtons = {
+            showUserLogin: document.getElementById('showUserLogin'),
+            showUserSignup: document.getElementById('showUserSignup'),
+            showUserHome: document.getElementById('showUserHome'),
+            showAddGrocery: document.getElementById('showAddGrocery'),
+            logoutBtn: document.getElementById('logoutBtn')
+        };
+
+
+        function showSection(sectionKey) {
+            for (const key in sections) {
+                sections[key].classList.remove('active');
+            }
+            sections[sectionKey].classList.add('active');
+
+            // Show/hide nav buttons based on section
+            if (sectionKey === 'userHome' || sectionKey === 'addGrocery') {
+                navButtons.logoutBtn.style.display = 'inline-block';
+                navButtons.showUserHome.style.display = 'none';
+                navButtons.showAddGrocery.style.display = 'none';
+                navButtons.showUserLogin.style.display = 'none';
+                navButtons.showUserSignup.style.display = 'none';
+            } else {
+                navButtons.logoutBtn.style.display = 'none';
+                navButtons.showUserHome.style.display = 'inline-block';
+                navButtons.showAddGrocery.style.display = 'inline-block';
+                navButtons.showUserLogin.style.display = 'inline-block';
+                navButtons.showUserSignup.style.display = 'inline-block';
+            }
+        }
+
+        // Initial view
+        showSection('userLogin');
+
+        // Admin emails for demonstration
+        const adminEmails = ['admin@example.com'];
+
+        // Navigation button event listeners
+        navButtons.showUserLogin.addEventListener('click', () => showSection('userLogin'));
+        navButtons.showUserSignup.addEventListener('click', () => showSection('userSignup'));
+        navButtons.showUserHome.addEventListener('click', () => showSection('userHome'));
+        navButtons.showAddGrocery.addEventListener('click', () => showSection('addGrocery'));
+
+        navButtons.logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            alert('Logged out');
+            showSection('userLogin');
+        });
+
+        // User Signup
+        const userSignupForm = document.getElementById('userSignupForm');
+        userSignupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userSignupUsername').value;
+            const email = document.getElementById('userSignupEmail').value;
+            const password = document.getElementById('userSignupPassword').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: username });
+                alert('User signup successful. Please login.');
+                showSection('userLogin');
+                userSignupForm.reset();
+            } catch (error) {
+                alert('Error during signup: ' + error.message);
+            }
+        });
+
+        // User Login
+        const userLoginForm = document.getElementById('userLoginForm');
+        userLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Show add grocery button only if user is admin
+                if (adminEmails.includes(email)) {
+                    navButtons.showAddGrocery.style.display = 'inline-block';
+                } else {
+                    navButtons.showAddGrocery.style.display = 'none';
+                }
+                showSection('userHome');
+                userLoginForm.reset();
+                loadGroceries();
+            } catch (error) {
+                alert('Error during login: ' + error.message);
+            }
+        });
+
+        // Load groceries for user home
+        const groceryListDiv = document.getElementById('groceryList');
+        async function loadGroceries() {
+            try {
+                const q = query(collection(db, "groceries"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                groceryListDiv.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const grocery = doc.data();
+                    const div = document.createElement('div');
+                    div.textContent = grocery.name;
+                    groceryListDiv.appendChild(div);
+                });
+            } catch (error) {
+                alert('Error loading groceries: ' + error.message);
+            }
+        }
+
+        // Add Grocery
+        // Removed from user page as per user request
+
+        // Display welcome username
+        const userWelcomeDiv = document.getElementById('userWelcome');
+        function updateWelcome(user) {
+            const name = user.displayName || user.email;
+            userWelcomeDiv.textContent = `Welcome, ${name}`;
+        }
+
+        // Auth state listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                updateWelcome(user);
+                // Show add grocery button only if user is admin
+                if (adminEmails.includes(user.email)) {
+                    navButtons.showAddGrocery.style.display = 'inline-block';
+                } else {
+                    navButtons.showAddGrocery.style.display = 'none';
+                }
+                showSection('userHome');
+                loadGroceries();
+                navButtons.logoutBtn.style.display = 'inline-block';
+            } else {
+                showSection('userLogin');
+                navButtons.logoutBtn.style.display = 'none';
+                navButtons.showAddGrocery.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
