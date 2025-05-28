@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Raitu Bazar Portal - User & Admin</title>
+    <style>
+        /* Basic styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
+            overflow-x: hidden;
+            color: #333;
+            position: relative;
+        }
+
+        input {
+            display: block;
+            margin: 8px 0;
+            padding: 8px;
+            width: 250px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        nav button,
+        nav a {
+            margin-right: 10px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 1em;
+        }
+
+        nav button:hover,
+        nav a:hover {
+            background-color: #45a049;
+        }
+
+        section {
+            display: none;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        #userWelcome,
+        #adminWelcome {
+            margin-bottom: 16px;
+            font-weight: bold;
+        }
+
+        #groceryList div {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Raitu Bazar Portal</h1>
+
+    <nav>
+        <button id="showUserPortal" type="button">User Portal</button>
+        <button id="showAdminPortal" type="button">Admin Portal</button>
+        <button id="logoutBtn" type="button" style="display:none;">Logout</button>
+        <a href="index.html">Back to Home</a>
+    </nav>
+
+    <!-- User Portal Sections -->
+    <section id="userLoginSection" class="active">
+        <h2>User Login</h2>
+        <form id="userLoginForm">
+            <input type="email" id="userEmail" placeholder="Email" required>
+            <input type="password" id="userPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <section id="userSignupSection">
+        <h2>User Signup</h2>
+        <form id="userSignupForm">
+            <input type="text" id="userSignupUsername" placeholder="Username" required>
+            <input type="email" id="userSignupEmail" placeholder="Email" required>
+            <input type="password" id="userSignupPassword" placeholder="Password" required>
+            <button type="submit">Signup</button>
+        </form>
+    </section>
+
+    <section id="userHomeSection">
+        <h2>Available Groceries</h2>
+        <div id="userWelcome"></div>
+        <div id="groceryList"></div>
+    </section>
+
+    <!-- Admin Portal Sections -->
+    <section id="adminLoginSection">
+        <h2>Admin Login</h2>
+        <form id="adminLoginForm">
+            <input type="email" id="adminEmail" placeholder="Email" required>
+            <input type="password" id="adminPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+
+    <section id="adminSignupSection">
+        <h2>Admin Signup</h2>
+        <form id="adminSignupForm">
+            <input type="text" id="adminSignupUsername" placeholder="Username" required>
+            <input type="email" id="adminSignupEmail" placeholder="Email" required>
+            <input type="password" id="adminSignupPassword" placeholder="Password" required>
+            <button type="submit">Signup</button>
+        </form>
+    </section>
+
+    <section id="adminDashboardSection">
+        <h2>Add Grocery</h2>
+        <div id="adminWelcome"></div>
+        <form id="addGroceryForm">
+            <input type="text" id="groceryName" placeholder="Grocery Name" required>
+            <button type="submit">Add Grocery</button>
+        </form>
+    </section>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            signOut,
+            updateProfile
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            query,
+            orderBy,
+            addDoc,
+            Timestamp
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQTHoKOQ2a4kIY4r-tjt1t4TRrFlJwRQ4",
+            authDomain: "website-16b02.firebaseapp.com",
+            databaseURL: "https://website-16b02-default-rtdb.firebaseio.com",
+            projectId: "website-16b02",
+            storageBucket: "website-16b02.firebasestorage.app",
+            messagingSenderId: "67452117174",
+            appId: "1:67452117174:web:d6625c9110f983e54a0617",
+            measurementId: "G-7E5054G6SS"
+        };
+
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Sections
+        const sections = {
+            userLogin: document.getElementById('userLoginSection'),
+            userSignup: document.getElementById('userSignupSection'),
+            userHome: document.getElementById('userHomeSection'),
+            adminLogin: document.getElementById('adminLoginSection'),
+            adminSignup: document.getElementById('adminSignupSection'),
+            adminDashboard: document.getElementById('adminDashboardSection')
+        };
+
+        // Navigation buttons
+        const navButtons = {
+            showUserPortal: document.getElementById('showUserPortal'),
+            showAdminPortal: document.getElementById('showAdminPortal'),
+            logoutBtn: document.getElementById('logoutBtn')
+        };
+
+        function showSection(sectionKey) {
+            for (const key in sections) {
+                sections[key].classList.remove('active');
+            }
+            sections[sectionKey].classList.add('active');
+
+            // Show/hide nav buttons based on section
+            if (sectionKey === 'userHome' || sectionKey === 'adminDashboard') {
+                navButtons.logoutBtn.style.display = 'inline-block';
+                navButtons.showUserPortal.style.display = 'none';
+                navButtons.showAdminPortal.style.display = 'none';
+            } else {
+                navButtons.logoutBtn.style.display = 'none';
+                navButtons.showUserPortal.style.display = 'inline-block';
+                navButtons.showAdminPortal.style.display = 'inline-block';
+            }
+        }
+
+        // Initial view
+        showSection('userHome');
+
+        // Navigation button event listeners
+        navButtons.showUserPortal.addEventListener('click', () => showSection('userLogin'));
+        navButtons.showAdminPortal.addEventListener('click', () => showSection('adminLogin'));
+
+        navButtons.logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+            alert('Logged out');
+            showSection('userLogin');
+        });
+
+        // User Signup
+        const userSignupForm = document.getElementById('userSignupForm');
+        userSignupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userSignupUsername').value.trim();
+            const email = document.getElementById('userSignupEmail').value.trim();
+            const password = document.getElementById('userSignupPassword').value;
+            if (!username || !email || !password) {
+                alert('Please fill in all signup fields.');
+                return;
+            }
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: username });
+                alert('User signup successful. Please login.');
+                showSection('userLogin');
+                userSignupForm.reset();
+            } catch (error) {
+                alert('Error during signup: ' + error.message);
+            }
+        });
+
+        // User Login
+        const userLoginForm = document.getElementById('userLoginForm');
+        userLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('userEmail').value.trim();
+            const password = document.getElementById('userPassword').value;
+            if (!email || !password) {
+                alert('Please fill in both email and password.');
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showSection('userHome');
+                userLoginForm.reset();
+                loadGroceries();
+            } catch (error) {
+                alert('Error during login: ' + error.message);
+            }
+        });
+
+        // Load groceries for user home
+        const groceryListDiv = document.getElementById('groceryList');
+        async function loadGroceries() {
+            try {
+                const q = query(collection(db, "groceries"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                groceryListDiv.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const grocery = doc.data();
+                    const div = document.createElement('div');
+                    div.textContent = grocery.name;
+                    groceryListDiv.appendChild(div);
+                });
+            } catch (error) {
+                alert('Error loading groceries: ' + error.message);
+            }
+        }
+
+        // Admin Signup
+        const adminSignupForm = document.getElementById('adminSignupForm');
+        adminSignupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('adminSignupUsername').value;
+            const email = document.getElementById('adminSignupEmail').value;
+            const password = document.getElementById('adminSignupPassword').value;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: username });
+                alert('Admin signup successful. Please login.');
+                showSection('adminLogin');
+                adminSignupForm.reset();
+            } catch (error) {
+                let message = 'Error during signup: ';
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        message += 'This email is already in use.';
+                        break;
+                    case 'auth/invalid-email':
+                        message += 'Invalid email address.';
+                        break;
+                    case 'auth/weak-password':
+                        message += 'Password is too weak.';
+                        break;
+                    default:
+                        message += error.message;
+                }
+                alert(message);
+            }
+        });
+
+        // Admin Login
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        adminLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showSection('adminDashboard');
+                adminLoginForm.reset();
+            } catch (error) {
+                let message = 'Error during login: ';
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        message += 'No user found with this email.';
+                        break;
+                    case 'auth/wrong-password':
+                        message += 'Incorrect password.';
+                        break;
+                    case 'auth/invalid-email':
+                        message += 'Invalid email address.';
+                        break;
+                    default:
+                        message += error.message;
+                }
+                alert(message);
+            }
+        });
+    </script>
+</body>
+
+</html>
