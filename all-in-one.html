@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>All-in-One Admin & User Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 1rem;
+        }
+
+        nav {
+            background-color: #232f3e;
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        nav button {
+            background-color: #febd69;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        nav button:hover {
+            background-color: #f3a847;
+        }
+
+        section {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        .form-container {
+            max-width: 400px;
+            margin: 0 auto 2rem auto;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        label {
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.4rem;
+            margin-top: 0.2rem;
+            box-sizing: border-box;
+        }
+
+        button.submit-btn {
+            margin-top: 1rem;
+            padding: 0.6rem 1.2rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button.submit-btn:hover {
+            background-color: #0056b3;
+        }
+
+        button.logout-btn {
+            background-color: #dc3545;
+            margin-top: 0;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            float: right;
+        }
+
+        button.logout-btn:hover {
+            background-color: #a71d2a;
+        }
+
+        .error {
+            color: red;
+            margin-top: 0.5rem;
+        }
+
+        .message {
+            margin-top: 1rem;
+            font-weight: bold;
+            color: green;
+        }
+
+        .product-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+
+        .product {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 1rem;
+            width: calc(25% - 1rem);
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .product img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .product-name {
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .product-price {
+            color: #b12704;
+            font-weight: bold;
+        }
+
+        .orders-list {
+            margin-top: 1rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .order {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .order-id {
+            font-weight: bold;
+        }
+
+        .order-date {
+            color: #555;
+            font-size: 0.9rem;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <nav>
+        <button onclick="showSection('adminSignup')">Admin Sign Up</button>
+        <button onclick="showSection('adminLogin')">Admin Login</button>
+        <button onclick="showSection('adminDashboard')">Admin Dashboard</button>
+        <button onclick="showSection('userSignup')">User Sign Up</button>
+        <button onclick="showSection('userLogin')">User Login</button>
+        <button onclick="showSection('userOrders')">User Orders</button>
+        <button onclick="showSection('mensWear')">Men's Wear</button>
+        <button onclick="showSection('womensWear')">Women's Wear</button>
+        <button onclick="showSection('kidsWear')">Kids' Wear</button>
+        <button id="logoutBtn" class="logout-btn" style="display:none;" onclick="logout()">Logout</button>
+    </nav>
+
+    <!-- Admin Sign Up -->
+    <section id="adminSignup" class="form-container">
+        <h2>Admin Sign Up</h2>
+        <form id="adminSignupForm">
+            <label for="adminEmail">Email:</label>
+            <input id="adminEmail" type="email" required />
+            <label for="adminPassword">Password:</label>
+            <input id="adminPassword" type="password" required />
+            <button type="submit" class="submit-btn">Sign Up</button>
+            <div id="adminSignupError" class="error"></div>
+        </form>
+    </section>
+
+    <!-- Admin Login -->
+    <section id="adminLogin" class="form-container">
+        <h2>Admin Login</h2>
+        <form id="adminLoginForm">
+            <label for="adminLoginEmail">Email:</label>
+            <input id="adminLoginEmail" type="email" required />
+            <label for="adminLoginPassword">Password:</label>
+            <input id="adminLoginPassword" type="password" required />
+            <button type="submit" class="submit-btn">Login</button>
+            <div id="adminLoginError" class="error"></div>
+        </form>
+    </section>
+
+    <!-- Admin Dashboard -->
+    <section id="adminDashboard">
+        <h1>Admin Dashboard</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+
+        <form id="productForm" class="form-container">
+            <h2>Add Product</h2>
+            <label for="productName">Name:</label>
+            <input id="productName" type="text" required />
+            <label for="productCategory">Category:</label>
+            <select id="productCategory" required>
+                <option value="">Select category</option>
+                <option value="mens">Men's Wear</option>
+                <option value="womens">Women's Wear</option>
+                <option value="kids">Kids' Wear</option>
+            </select>
+            <label for="productPrice">Price:</label>
+            <input id="productPrice" type="number" step="0.01" required />
+            <label for="productImage">Image URL:</label>
+            <input id="productImage" type="url" required />
+            <button type="submit" class="submit-btn">Add Product</button>
+            <div id="productMessage" class="message"></div>
+        </form>
+
+        <form id="orderForm" class="form-container">
+            <h2>Add Order</h2>
+            <label for="orderId">Order ID:</label>
+            <input id="orderId" type="text" required />
+            <label for="orderDate">Order Date:</label>
+            <input id="orderDate" type="date" required />
+            <label for="orderItems">Items (comma separated):</label>
+            <input id="orderItems" type="text" required />
+            <label for="orderTotal">Total Price:</label>
+            <input id="orderTotal" type="number" step="0.01" required />
+            <button type="submit" class="submit-btn">Add Order</button>
+            <div id="orderMessage" class="message"></div>
+        </form>
+    </section>
+
+    <!-- User Sign Up -->
+    <section id="userSignup" class="form-container">
+        <h2>User Sign Up</h2>
+        <form id="userSignupForm">
+            <label for="userEmail">Email:</label>
+            <input id="userEmail" type="email" required />
+            <label for="userPassword">Password:</label>
+            <input id="userPassword" type="password" required />
+            <button type="submit" class="submit-btn">Sign Up</button>
+            <div id="userSignupError" class="error"></div>
+        </form>
+    </section>
+
+    <!-- User Login -->
+    <section id="userLogin" class="form-container">
+        <h2>User Login</h2>
+        <form id="userLoginForm">
+            <label for="userLoginEmail">Email:</label>
+            <input id="userLoginEmail" type="email" required />
+            <label for="userLoginPassword">Password:</label>
+            <input id="userLoginPassword" type="password" required />
+            <button type="submit" class="submit-btn">Login</button>
+            <div id="userLoginError" class="error"></div>
+        </form>
+    </section>
+
+    <!-- User Orders -->
+    <section id="userOrders">
+        <h2>Your Orders</h2>
+        <div class="orders-list" id="ordersList"></div>
+    </section>
+
+    <!-- Men's Wear -->
+    <section id="mensWear">
+        <h2>Men's Wear</h2>
+        <div class="product-list" id="mensProductsList"></div>
+    </section>
+
+    <!-- Women's Wear -->
+    <section id="womensWear">
+        <h2>Women's Wear</h2>
+        <div class="product-list" id="womensProductsList"></div>
+    </section>
+
+    <!-- Kids' Wear -->
+    <section id="kidsWear">
+        <h2>Kids' Wear</h2>
+        <div class="product-list" id="kidsProductsList"></div>
+    </section>
+
+    <script>
+        // Firebase config (corrected storageBucket)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQTHoKOQ2a4kIY4r-tjt1t4TRrFlJwRQ4",
+            authDomain: "website-16b02.firebaseapp.com",
+            databaseURL: "https://website-16b02-default-rtdb.firebaseio.com",
+            projectId: "website-16b02",
+            storageBucket: "website-16b02.appspot.com",
+            messagingSenderId: "67452117174",
+            appId: "1:67452117174:web:d6625c9110f983e54a0617",
+            measurementId: "G-7E5054G6SS"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Navigation and section display
+        function showSection(sectionId) {
+            document.querySelectorAll('section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            // Show logout button only on dashboard and userOrders
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (sectionId === 'adminDashboard' || sectionId === 'userOrders') {
+                logoutBtn.style.display = 'inline-block';
+            } else {
+                logoutBtn.style.display = 'none';
+            }
+        }
+
+        // Show admin login by default
+        showSection('adminLogin');
+
+        // Admin Signup
+        const adminSignupForm = document.getElementById('adminSignupForm');
+        const adminSignupError = document.getElementById('adminSignupError');
+        adminSignupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            adminSignupError.textContent = '';
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    alert('Admin Sign Up successful! Welcome ' + userCredential.user.email);
+                    adminSignupForm.reset();
+                    showSection('adminLogin');
+                })
+                .catch(error => {
+                    adminSignupError.textContent = error.message;
+                });
+        });
+
+        // Admin Login
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminLoginError = document.getElementById('adminLoginError');
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            adminLoginError.textContent = '';
+            const email = document.getElementById('adminLoginEmail').value;
+            const password = document.getElementById('adminLoginPassword').value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    alert('Admin Login successful! Welcome ' + userCredential.user.email);
+                    adminLoginForm.reset();
+                    showSection('adminDashboard');
+                })
+                .catch(error => {
+                    adminLoginError.textContent = error.message;
+                });
+        });
+
+        // Admin Dashboard - Add Product
+        const productForm = document.getElementById('productForm');
+        const productMessage = document.getElementById('productMessage');
+        productForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            productMessage.textContent = '';
+            const name = document.getElementById('productName').value;
+            const category = document.getElementById('productCategory').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const image = document.getElementById('productImage').value;
+            db.collection('products').add({ name, category, price, image })
+                .then(() => {
+                    productMessage.textContent = 'Product added successfully.';
+                    productForm.reset();
+                    loadProducts();
+                })
+                .catch(error => {
+                    productMessage.textContent = 'Error adding product: ' + error.message;
+                });
+        });
+
+        // Admin Dashboard - Add Order
+        const orderForm = document.getElementById('orderForm');
+        const orderMessage = document.getElementById('orderMessage');
+        orderForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            orderMessage.textContent = '';
+            const orderId = document.getElementById('orderId').value;
+            const orderDate = document.getElementById('orderDate').value;
+            const items = document.getElementById('orderItems').value.split(',').map(item => item.trim());
+            const total = parseFloat(document.getElementById('orderTotal').value);
+            db.collection('orders').add({ orderId, orderDate, items, total })
+                .then(() => {
+                    orderMessage.textContent = 'Order added successfully.';
+                    orderForm.reset();
+                })
+                .catch(error => {
+                    orderMessage.textContent = 'Error adding order: ' + error.message;
+                });
+        });
+
+        // User Signup
+        const userSignupForm = document.getElementById('userSignupForm');
+        const userSignupError = document.getElementById('userSignupError');
+        userSignupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            userSignupError.textContent = '';
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    alert('User Sign Up successful! Welcome ' + userCredential.user.email);
+                    userSignupForm.reset();
+                    showSection('userLogin');
+                })
+                .catch(error => {
+                    userSignupError.textContent = error.message;
+                });
+        });
+
+        // User Login
+        const userLoginForm = document.getElementById('userLoginForm');
+        const userLoginError = document.getElementById('userLoginError');
+        userLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            userLoginError.textContent = '';
+            const email = document.getElementById('userLoginEmail').value;
+            const password = document.getElementById('userLoginPassword').value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then(async userCredential => {
+                    userLoginForm.reset();
+                    const user = userCredential.user;
+                    // Fetch user role from Firestore
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    const userData = userDoc.data();
+                    if (userData && userData.role === 'admin') {
+                        alert('Redirecting to Admin Dashboard');
+                        showSection('adminDashboard');
+                    } else {
+                        alert('Redirecting to User Orders');
+                        showSection('userOrders');
+                        loadUserOrders(user.uid);
+                    }
+                    document.getElementById('logoutBtn').style.display = 'inline-block';
+                })
+                .catch(error => {
+                    userLoginError.textContent = error.message;
+                });
+        });
+
+        // Load products by category
+        function loadProducts() {
+            ['mens', 'womens', 'kids'].forEach(category => {
+                const listId = category === 'mens' ? 'mensProductsList' : category === 'womens' ? 'womensProductsList' : 'kidsProductsList';
+                const listDiv = document.getElementById(listId);
+                listDiv.innerHTML = '';
+                db.collection('products').where('category', '==', category).get()
+                    .then(snapshot => {
+                        snapshot.forEach(doc => {
+                            const product = doc.data();
+                            const productDiv = document.createElement('div');
+                            productDiv.className = 'product';
+                            productDiv.innerHTML = `
+                                <img src="${product.image}" alt="${product.name}" />
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-price">$${product.price.toFixed(2)}</div>
+                            `;
+                            listDiv.appendChild(productDiv);
+                        });
+                    });
+            });
+        }
+
+        // Load user orders
+        function loadUserOrders(userId) {
+            const ordersList = document.getElementById('ordersList');
+            ordersList.innerHTML = '';
+            db.collection('orders').where('userId', '==', userId).get()
+                .then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const order = doc.data();
+                        const orderDiv = document.createElement('div');
+                        orderDiv.className = 'order';
+                        orderDiv.innerHTML = `
+                            <div class="order-id">Order #${order.orderId}</div>
+                            <div class="order-date">Placed on: ${order.orderDate}</div>
+                            <div>Items: ${order.items.join(', ')}</div>
+                            <div>Total: $${order.total.toFixed(2)}</div>
+                        `;
+                        ordersList.appendChild(orderDiv);
+                    });
+                });
+        }
+
+        // Logout function
+        function logout() {
+            auth.signOut().then(() => {
+                alert('Logged out successfully');
+                document.getElementById('logoutBtn').style.display = 'none';
+                showSection('userLogin');
+            });
+        }
+
+        // On page load, show user login by default
+        showSection('userLogin');
+        loadProducts();
+    </script>
+</body>
+
+</html>

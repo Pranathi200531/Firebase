@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Login</title>
+    <title>User Login</title>
     <style>
         .login-container {
             max-width: 400px;
@@ -63,7 +63,7 @@
 
 <body>
     <div class="login-container">
-        <h2>Admin Login</h2>
+        <h2>User Login</h2>
         <form id="loginForm">
             <div class="form-group">
                 <label for="email">Email:</label>
@@ -108,9 +108,17 @@
             errorMessage.textContent = '';
 
             auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    alert('Login successful! Welcome ' + userCredential.user.email);
+                .then(async (userCredential) => {
                     loginForm.reset();
+                    const user = userCredential.user;
+                    // Fetch user role from Firestore
+                    const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+                    const userData = userDoc.data();
+                    if (userData && userData.role === 'admin') {
+                        window.location.href = 'Amazon.html';
+                    } else {
+                        window.location.href = 'all-in-one.html';
+                    }
                 })
                 .catch((error) => {
                     errorMessage.textContent = error.message;
